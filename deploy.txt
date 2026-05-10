@@ -1,0 +1,67 @@
+ยินดีด้วยครับที่พัฒนาจนระบบลื่นไหลแล้ว! การเปลี่ยนจากการรันบน localhost ไปสู่ Vercel โดยใช้ GitHub เป็นตัวกลาง จะช่วยให้ทีมงานคนอื่นเข้าใช้งานผ่าน URL จริงได้สะดวกมากครับ
+
+นี่คือขั้นตอนการ Deploy อย่างละเอียดครับ:
+
+1. เตรียมโปรเจกต์ใน GitHub
+สร้าง Repository: ไปที่ GitHub แล้วสร้าง Repo ใหม่ (เช่น outlook-case-assignment).
+
+Push Code: สั่งรันคำสั่งเหล่านี้ในโฟลเดอร์โปรเจกต์ของคุณ:
+
+Bash
+git init
+git add .
+git commit -m "Initial deploy to Vercel"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+
+(https://github.com/karn625-lab/cou-case-assignment.git)
+
+git push -u origin main
+หมายเหตุ: ตรวจสอบให้แน่ใจว่าไฟล์ .gitignore ของคุณครอบคลุมโฟลเดอร์ node_modules และ dist แล้ว
+
+2. ตั้งค่าบน Vercel
+สมัคร/Login: ไปที่ vercel.com แล้วเชื่อมต่อกับบัญชี GitHub ของคุณ
+
+Import Project: กดปุ่ม "Add New" > "Project" แล้วเลือก Repository ที่เพิ่งสร้าง
+
+Configure Project: * Framework Preset: เลือกเป็น Other หรือ Vercel มักจะตรวจจับเป็น Create React App ให้โดยอัตโนมัติ
+
+Build Command: npm run build
+
+Output Directory: dist (สำคัญมาก! สำหรับ Office Add-in ต้องตรวจสอบว่า build แล้วไฟล์ไปอยู่ที่ dist หรือ build)
+
+Deploy: กดปุ่ม "Deploy" แล้วรอจนเสร็จ คุณจะได้ URL มา (เช่น https://case-assign.vercel.app)
+
+3. แก้ไข Manifest File (หัวใจสำคัญ)
+เมื่อได้ URL จาก Vercel มาแล้ว คุณต้องแก้ไฟล์ manifest.xml เพื่อให้ Outlook รู้ว่าต้องไปโหลด Add-in จากที่ไหนแทน localhost:
+
+เปิดไฟล์ manifest.xml
+
+ใช้คำสั่ง Find and Replace:
+
+ค้นหา: https://localhost:3000
+
+เปลี่ยนเป็น: https://your-app-name.vercel.app (URL ที่ได้จาก Vercel)
+
+สำคัญ: ตรวจสอบส่วน <bt:Urls> ด้านล่างสุดของไฟล์ให้มั่นใจว่าเป็น URL ของ Vercel ทั้งหมด
+
+4. การจัดการ SSL และ Asset (Vercel Handle ให้แล้ว)
+HTTPS: Office Add-in บังคับใช้ HTTPS ซึ่ง Vercel จัดการใบรับรอง SSL ให้ฟรีและอัตโนมัติอยู่แล้วครับ
+
+Static Assets: ไฟล์รูปภาพไอคอนต่างๆ ต้องอัปโหลดขึ้นไปพร้อมกับโปรเจกต์ และตรวจสอบว่า Path ใน Manifest ตรงกับโครงสร้างไฟล์บน Vercel
+
+5. วิธีการติดตั้งใช้งาน (Sideloading)
+เมื่อแก้ Manifest และ Deploy แล้ว ให้ติดตั้งเข้า Outlook ของทีมงานดังนี้:
+
+ไปที่ Outlook (Web) > เปิดเมลใดก็ได้ > กดปุ่ม Apps (จุดสามจุด)
+
+เลือก "Add apps"
+
+กด "Manage your apps" > "Upload a custom app"
+
+เลือกไฟล์ manifest.xml ตัวที่แก้ไข URL แล้ว
+
+Add-in ของคุณจะปรากฏขึ้นและใช้งานได้จากทุกที่ ไม่ต้องเปิด terminal รัน npm start อีกต่อไป!
+
+💡 ทริคส่งท้าย
+ทุกครั้งที่คุณ Push Code ขึ้น GitHub ตัว Vercel จะสั่ง Auto-deploy ให้ใหม่ทันที คุณแค่รีเฟรชหน้า OutlookAdd-in ก็จะได้รับการอัปเดตเวอร์ชันล่าสุดทันทีครับ! 🚀
