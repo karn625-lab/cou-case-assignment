@@ -12,9 +12,7 @@ git init
 git add .
 git commit -m "Initial deploy to Vercel"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-
-(https://github.com/karn625-lab/cou-case-assignment.git)
+git remote add origin https://github.com/karn625-lab/cou-case-assignment.git
 
 git push -u origin main
 หมายเหตุ: ตรวจสอบให้แน่ใจว่าไฟล์ .gitignore ของคุณครอบคลุมโฟลเดอร์ node_modules และ dist แล้ว
