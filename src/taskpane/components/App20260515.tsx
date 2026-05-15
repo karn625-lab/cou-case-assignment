@@ -28,10 +28,8 @@ const App: React.FC = () => {
   const [officerOptions, setOfficerOptions] = useState<IDropdownOption[]>([]); 
   const [selectedOfficer, setSelectedOfficer] = useState<any>(null);
 
-  // State สำหรับผู้ทำรายการ (Submitter)
-  const [selectedSubmitter, setSelectedSubmitter] = useState<IDropdownOption | null>(null);
-
   const [status, setStatus] = useState("ยังไม่ดำเนินการ");
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogData, setDialogData] = useState({ title: "", message: "" });
@@ -61,7 +59,7 @@ const App: React.FC = () => {
       const items = Array.isArray(data) ? data : (data.value || []);
       const options = items.map((item: any) => ({
         key: item.ID.toString(),
-        text: `${item.Job_x0020_details} (${item.Primary_Assign})`,
+        text: `${item.Job_x0020_details}`,
         data: item 
       }));
       setJobOptions(options);
@@ -77,19 +75,6 @@ const App: React.FC = () => {
       const data = await response.json();
       const items = Array.isArray(data) ? data : (data.value || []);
       setAllOfficers(items);
-      
-      const options = items.map((item: any) => ({
-        key: item.Title, 
-        text: item.Title,
-        data: item 
-      }));
-
-      // Logic: ดึงค่า Submitter ที่เคยเลือกไว้จาก localStorage
-      const savedSubmitterKey = localStorage.getItem("savedSubmitterKey");
-      if (savedSubmitterKey) {
-        const found = options.find(opt => opt.key === savedSubmitterKey);
-        if (found) setSelectedSubmitter(found);
-      }
     } catch (e) {
       console.error("Fetch All Officers Error:", e);
     }
@@ -120,11 +105,26 @@ const App: React.FC = () => {
     return options; 
   };
 
+  // --- ปรับแต่ง ComboBox Styles เพื่อให้ Wrap Text หลังจากเลือกแล้ว ---
   const comboBoxStyles: Partial<IComboBoxStyles> = {
-    root: { width: '100%', height: 'auto', minHeight: '32px' },
-    container: { height: 'auto' },
-    input: { whiteSpace: 'normal', height: 'auto', minHeight: '32px', lineHeight: '1.5', padding: '5px 0' },
-    callout: { maxWidth: '300px' },
+    root: { 
+      width: '100%', 
+      height: 'auto', // ให้ความสูงยืดหยุ่น
+      minHeight: '32px' 
+    },
+    container: { 
+      height: 'auto',
+      overflow: 'visible' // สำคัญ: เพื่อให้ข้อความที่ยาวไม่ถูกตัดหายไป
+    },
+    input: {
+      whiteSpace: 'normal', // อนุญาตให้ข้อความขึ้นบรรทัดใหม่
+      wordBreak: 'break-word',
+      height: 'auto',
+      minHeight: '32px',
+      lineHeight: '1.5',
+      padding: '5px 0',
+      overflow: 'visible'
+    },
     optionsContainer: { maxHeight: 400 },
   };
 
@@ -139,54 +139,9 @@ const App: React.FC = () => {
     </div>
   );
 
-  const assignCategories = (categoryNames: string[]) => {
-    return new Promise<void>((resolve) => {
-      const item = Office.context.mailbox.item;
-      if (item && item.categories) {
-        const cleanCategories = categoryNames.filter(name => name && name.trim() !== "").map(name => name.trim());
-        item.categories.addAsync(cleanCategories, (asyncResult) => {
-          if (asyncResult.status !== Office.AsyncResultStatus.Succeeded) {
-            console.error("Failed to assign categories:", asyncResult.error.message);
-          }
-          resolve();
-        });
-      } else { resolve(); }
-    });
-  };
-
-  const forwardViaFlow = async (emailId: string, bodyHtml: string, toEmail: string, shouldForward: boolean) => {
-    const forwardFlowUrl = "https://defaultb8d867c0b949455c95ddcee5324ed8.15.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/38527c197e144e6e8fc25075c7005f69/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Ux3PJS3kd_qcZer8pV4ys9g3-YFtPUGNK5qPRK4EMQs";
-    try {
-      await fetch(forwardFlowUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emailId, body: bodyHtml, to: toEmail, isForward: shouldForward })
-      });
-    } catch (error) { console.error("Forward Flow Error:", error); }
-  };
-
-  const openInternalReply = (finalCaseNo: string) => {
-    const item = Office.context.mailbox.item;
-    const bodyHtml = `
-      <div style="font-family: Calibri, sans-serif; font-size: 11pt;">
-        เรียน ทีมงานที่เกี่ยวข้อง,<br/><br/>
-        บันทึกเคสเรียบร้อยแล้ว:<br/>
-        <b>เลขที่เคส:</b> ${finalCaseNo}<br/>
-        <b>เรื่อง:</b> ${subject}<br/>
-        <b>รายละเอียดงาน:</b> ${selectedJob?.data?.Job_x0020_details || ""}<br/>
-        <b>ผู้รับผิดชอบ:</b> ${selectedOfficer?.text || ""}<br/><br/>
-        ขอบคุณครับ
-      </div>
-    `;
-    const shouldForward = selectedJob?.data?.Send_x0020_Email === true || selectedJob?.data?.Send_x0020_Email === "true";
-    const toEmail = selectedOfficer?.data?.Officer_Name?.Email || ""; 
-    const emailIdForFlow = Office.context.mailbox.convertToRestId(item.itemId, Office.MailboxEnums.RestVersion.v2_0);
-    forwardViaFlow(emailIdForFlow, bodyHtml, toEmail, shouldForward);
-  };
-
   const handleSubmit = async () => {
-    if (!subject.trim() || !selectedSubmitter) {
-      openMsg("คำเตือน", "กรุณากรอกข้อมูลและเลือกผู้บันทึกงานให้ครบถ้วน");
+    if (!subject.trim()) {
+      setSubjectError("กรุณากรอก Subject ก่อนบันทึก");
       return;
     }
     setIsSubmitting(true);
@@ -196,17 +151,16 @@ const App: React.FC = () => {
   
     const payload = {
       Subject: subject,
-      JobDetails: selectedJob?.data?.Job_x0020_details,
-      JobType: selectedJob?.data?.Job_x0020_Type,
-      AssignedTo: selectedOfficer?.text,
-      TrackingSLA: selectedJob?.data?.Tracking_x0020_SLA,
+      JobDetails: selectedJob.data.Job_x0020_details,
+      JobType: selectedJob.data.Job_x0020_Type,
+      AssignedTo: selectedOfficer.text,
+      TrackingSLA: selectedJob.data.Tracking_x0020_SLA,
       Status: status,
-      SendMail: selectedJob?.data?.Send_x0020_Email,
-      ToEmail: selectedOfficer?.data?.Officer_Name?.Email || "",
+      SendMail: selectedJob.data.Send_x0020_Email,
+      ToEmail: selectedOfficer.data.Officer_Name?.Email || "",
       ReceiveDatetime: item.dateTimeCreated.toISOString(),
       EmailUrl: `https://outlook.office.com/mail/deeplink/read/${encodeURIComponent(item.itemId)}`,
-      EmailID: emailIdForFlow,
-      Submit_user: selectedSubmitter.text // ส่งชื่อผู้ทำรายการไปเก็บที่ SharePoint
+      EmailID: emailIdForFlow
     };
 
     try {
@@ -218,8 +172,6 @@ const App: React.FC = () => {
       if (response.status === 200) {
         const result = await response.json();
         const finalCaseNo = result.caseNo || "COU_ERROR";
-        await assignCategories(["บันทึกเคส-COU-เรียบร้อย", selectedOfficer?.text]);
-        openInternalReply(finalCaseNo);
         openMsg("สำเร็จ", `บันทึกเคสเลขที่ ${finalCaseNo} เรียบร้อยแล้ว`);
       } else {
         openMsg("เกิดข้อผิดพลาด", `Status: ${response.status}`);
@@ -234,22 +186,7 @@ const App: React.FC = () => {
   return (
     <div style={{ padding: '10px 20px' }}>
       <Stack tokens={{ childrenGap: 15 }}>
-        <h2 style={{ color: '#0078d4', margin: '0 0 5px 0' }}>Case Assignment V 3.8</h2>
-        
-        <Dropdown
-          label="ผู้บันทึกงาน (Submitter):"
-          placeholder="เลือกชื่อของคุณ"
-          options={allOfficers.map(item => ({ key: item.Title, text: item.Title }))}
-          selectedKey={selectedSubmitter ? selectedSubmitter.key : undefined}
-          onChange={(_, opt) => {
-            if (opt) {
-              setSelectedSubmitter(opt);
-              localStorage.setItem("savedSubmitterKey", opt.key as string); // จำค่าไว้ในเครื่อง
-            }
-          }}
-          styles={dropdownStyles}
-        />
-
+        <h2 style={{ color: '#0078d4', margin: '0 0 5px 0' }}>Case Assignment V 3.6</h2>
         <TextField label="Subject:" value={subject} onChange={(_, v) => setSubject(v || "")} />
 
         <ComboBox
@@ -305,7 +242,7 @@ const App: React.FC = () => {
         <PrimaryButton 
           text={isSubmitting ? "กำลังบันทึก..." : "Submit Case"} 
           onClick={handleSubmit} 
-          disabled={!selectedJob || !selectedOfficer || !subject.trim() || !selectedSubmitter || isSubmitting} 
+          disabled={!selectedJob || !selectedOfficer || !subject.trim() || isSubmitting} 
           styles={{ root: { marginTop: 10 } }}
         />
       </Stack>
