@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [selectedSubmitter, setSelectedSubmitter] = useState<IDropdownOption | null>(null);
 
   const [status, setStatus] = useState("ยังไม่ดำเนินการ");
+  const [remarks, setRemarks] = useState(""); // เพิ่ม State สำหรับ Remarks
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogData, setDialogData] = useState({ title: "", message: "" });
@@ -201,6 +202,7 @@ const App: React.FC = () => {
       AssignedTo: selectedOfficer?.text,
       TrackingSLA: selectedJob?.data?.Tracking_x0020_SLA,
       Status: status,
+      Remarks: remarks, // ส่งค่า Remarks เพิ่มเข้าไปใน Payload
       SendMail: selectedJob?.data?.Send_x0020_Email,
       ToEmail: selectedOfficer?.data?.Officer_Name?.Email || "",
       ReceiveDatetime: item.dateTimeCreated.toISOString(),
@@ -234,7 +236,7 @@ const App: React.FC = () => {
   return (
     <div style={{ padding: '10px 20px' }}>
       <Stack tokens={{ childrenGap: 15 }}>
-        <h2 style={{ color: '#0078d4', margin: '0 0 5px 0' }}>Case Assignment V 3.8</h2>
+        <h2 style={{ color: '#0078d4', margin: '0 0 5px 0' }}>Case Assignment V 3.9</h2>
         
         <Dropdown
           label="ผู้บันทึกงาน (Submitter):"
@@ -300,6 +302,14 @@ const App: React.FC = () => {
             { key: 'ปิดเคส', text: 'ปิดเคส' }
           ]}
           onChange={(_, opt) => { if (opt) setStatus(opt.key as string); }}
+        />
+
+        <TextField 
+          label="Remarks:" 
+          multiline 
+          rows={2} 
+          value={remarks} 
+          onChange={(_, v) => setRemarks(v || "")} 
         />
 
         <PrimaryButton 
