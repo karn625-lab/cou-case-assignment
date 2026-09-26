@@ -168,6 +168,7 @@ const App: React.FC = () => {
 
   const openInternalReply = (finalCaseNo: string) => {
     const item = Office.context.mailbox.item;
+    const remarksHtml = remarks && remarks.trim() !== "" ? `<b>หมายเหตุ:</b> ${remarks}<br/>` : "";
     const bodyHtml = `
       <div style="font-family: Calibri, sans-serif; font-size: 11pt;">
         เรียน ทีมงานที่เกี่ยวข้อง,<br/><br/>
@@ -175,7 +176,8 @@ const App: React.FC = () => {
         <b>เลขที่เคส:</b> ${finalCaseNo}<br/>
         <b>เรื่อง:</b> ${subject}<br/>
         <b>รายละเอียดงาน:</b> ${selectedJob?.data?.Job_x0020_details || ""}<br/>
-        <b>ผู้รับผิดชอบ:</b> ${selectedOfficer?.text || ""}<br/><br/>
+        <b>ผู้รับผิดชอบ:</b> ${selectedOfficer?.text || ""}<br/>
+        ${remarksHtml}<br/>
         ขอบคุณครับ
       </div>
     `;
